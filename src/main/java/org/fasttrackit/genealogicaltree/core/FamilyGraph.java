@@ -1,6 +1,6 @@
 package org.fasttrackit.genealogicaltree.core;
 
-import com.google.inject.Inject;
+
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.var;

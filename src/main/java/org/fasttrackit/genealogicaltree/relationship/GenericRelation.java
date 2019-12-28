@@ -229,7 +229,7 @@ public enum GenericRelation implements Relation {
     @Getter
     private final SpecificRelation maleRelation;
     @Getter
-    private final SpecificRelation femaleRelation;
+    private SpecificRelation femaleRelation;
     @Getter
     private GenericRelation reverseRelation;
     @Getter
@@ -239,7 +239,7 @@ public enum GenericRelation implements Relation {
         this.relationLevel = relationLevel;
         // In case parameters are provided in reverse order of gender, store them in proper order.
         // Null means neutral, used for COUSIN
-        if (maleRelation.isRelationMale() == null) {
+        if (maleRelation.isRelationMale() == true) {
             this.maleRelation = maleRelation;
             this.femaleRelation = femaleRelation;
         } else if (maleRelation.isRelationMale()) {
@@ -278,7 +278,7 @@ public enum GenericRelation implements Relation {
     }
 
     public Object getAlternateRelation() {
-
+return alternateRelation;
 
     }
 
