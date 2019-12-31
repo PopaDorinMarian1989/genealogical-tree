@@ -15,6 +15,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @DisplayName("Family Graph Test")
 class FamilyGraphTest extends SoftwareTest {
 
+    private ConnectionEdge connection;
+
     @Test
     void addPerson() {
         Person person = new Person("13", "Devil", 100, true);
@@ -91,13 +93,13 @@ class FamilyGraphTest extends SoftwareTest {
         expectedConnections.add(new ConnectionEdge("1", "NIECE", "9", -1, family));
         expectedConnections.add(new ConnectionEdge("1", "COUSIN", "10", 0, family));
 
-        family.getAllPersonsInFamily().stream().filter(person -> !person.equals(origin)).forEach(person ->
-                assertEquals(expectedConnections.get(Integer.valueOf(person.getId()) - 2), family.getConnection
-                        (origin, person, false)));
+        family.getAllPersonsInFamily().stream().filter(person -> !person.equals(origin)).forEach(person -> assertEquals(expectedConnections.get(Integer.valueOf(person.getId()) - 2), family.getConnection
+                (origin, person, false)));
     }
 
     private void assertEquals(ConnectionEdge connectionEdge, ConnectionEdge connection) {
 
+        this.connection = connection;
     }
 
     @Test

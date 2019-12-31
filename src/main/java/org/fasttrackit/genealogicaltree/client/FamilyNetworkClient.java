@@ -3,7 +3,6 @@ package org.fasttrackit.genealogicaltree.client;
 
 import com.google.inject.Guice;
 import com.google.inject.Inject;
-import jdk.internal.loader.Loader;
 import org.fasttrackit.genealogicaltree.core.FamilyGraph;
 import org.fasttrackit.genealogicaltree.loader.LoaderService;
 import org.fasttrackit.genealogicaltree.modules.FamilyModule;
@@ -23,7 +22,7 @@ public class FamilyNetworkClient {
 
     public static void main(String[] args) throws IOException {
         Guice.createInjector(new FamilyModule());
-        Loader.loadFamily(family);
+        LoaderService.loadFamily(family);
 
         Scanner scn = new Scanner(System.in);
         System.out.println("Select option to Display: ");

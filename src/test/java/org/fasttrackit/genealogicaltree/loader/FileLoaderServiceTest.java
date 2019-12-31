@@ -40,7 +40,7 @@ class FileLoaderServiceTest {
                         ("src//test//resources//testFamilyToLoad.txt");
             }
         }));
-        loader.loadFamily(family);
+        LoaderService.loadFamily(family);
     }
 
     @Test

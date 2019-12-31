@@ -1,48 +1,46 @@
 package org.fasttrackit.genealogicaltree.core;
 
 
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.var;
 import org.fasttrackit.genealogicaltree.relationship.GenericRelation;
 import org.fasttrackit.genealogicaltree.relationship.Relation;
 import org.fasttrackit.genealogicaltree.relationship.SpecificRelation;
 import org.fasttrackit.genealogicaltree.validation.Validator;
+import org.springframework.lang.NonNull;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
 import static org.fasttrackit.genealogicaltree.utils.FilterUtils.filterConnectionsByGenerationLevel;
 import static org.fasttrackit.genealogicaltree.utils.RelationUtils.parseToGenericRelation;
 
-
-
 @RequiredArgsConstructor
 public class FamilyGraph {
-    private final Map<String, Person> mPersonIdMap = new HashMap<>(); // Represents all the persons put into the graph.
+    private final Map<String, Person> mPersonIdMap = new HashMap<>();
     private final Map<Person, Set<ConnectionEdge>> mRelationMap = new HashMap<>();
-    @NonNull
+
     private final Validator mValidator;
+    private GenericRelation reverseRelation;
+    private Boolean isRelationMale;
+    private int i;
+    private Collection<ConnectionEdge> allConnectionsInFamilyForPerson;
+    private Person p1;
+    private Object genericRelation;
+    private SpecificRelation specificRelation;
+    private Person p2;
+    private int relationLevel;
+    private boolean doValidate;
 
     public FamilyGraph(@NonNull Validator mValidator) {
         this.mValidator = mValidator;
     }
 
-    /**
-     * Returns all the neighbour direct relations of a persons
-     *
-     * @param person Person to find neighbours
-     * @return neighbours of the person
-     */
+
     public Set<ConnectionEdge> getAllNeighbourConnections(Person person) {
         return mRelationMap.get(person);
     }
 
-    /**
-     * Adds a Person to family graph, ignores if the person is already present
-     *
-     * @param person Person to add
-     */
+
     public void addPerson(Person person) {
         if (!mRelationMap.containsKey(person)) {
             mPersonIdMap.put(person.getId(), person);
@@ -50,55 +48,33 @@ public class FamilyGraph {
         }
     }
 
-    /**
-     * Adds a Person through Person attributes
-     *
-     * @param id     Id of the person
-     * @param name   Name of the person
-     * @param age    Age of the person
-     * @param isMale Gender of the person
-     */
+
     public void addPerson(String id, String name, String age, String isMale) {
         this.addPerson(new Person(id, name, age, isMale));
     }
 
-    /**
-     * Connects two persons in family, this method wrote to ease unit testing
-     *
-     * @param p1Id     From Person Id
-     * @param relation Relation between Persons as String
-     * @param p2Id     To Person Id
-     */
+
     public void connectPersons(String p1Id, String relation, String p2Id) {
         Person p1 = mPersonIdMap.get(p1Id);
         Person p2 = mPersonIdMap.get(p2Id);
-        // If we are given only ID, we can't create a person object without other attributes, so we check his existence
-        // instead of adding him to family if he is new.
+
         if (p1 == null) {
             throw new IllegalArgumentException("Person with Id: " + p1Id + " not found in family to connect");
         }
         if (p2 == null) {
             throw new IllegalArgumentException("Person with Id: " + p2Id + " not found in family to connect");
         }
-        // relation string parameter can either be generic or specific
+
         GenericRelation GenericRelation;
         GenericRelation = parseToGenericRelation(relation);
-        connectPersons(p1, GenericRelation, p2, GenericRelation.getRelationLevel(), true);
+        connectPersons(p1, GenericRelation, p2, GenericRelation.getRelationLevel());
     }
 
-    private void connectPersons(Person p1, GenericRelation genericRelation, Person p2, Object relationLevel, boolean b) {
+    private void connectPersons(Person p1, GenericRelation genericRelation, Person p2, Object relationLevel) {
 
     }
 
 
-    /**
-     * Connects two persons in the family with Generic relation
-     *
-     * @param p1              From Person
-     * @param GenericRelation Generic Relation between Persons
-     * @param p2              To Person
-     * @param doValidate      Switch to turn validation on or off
-     */
     private void connectPersons(Person p1, GenericRelation GenericRelation, Person p2, int relationLevel, boolean
             doValidate) {
         addPerson(p1);
@@ -110,58 +86,47 @@ public class FamilyGraph {
         mRelationMap.get(p2).add(new ConnectionEdge(p2, GenericRelation.getReverseRelation(), p1, -relationLevel));
     }
 
-    /**
-     * Connects two persons in the family with Specific relation
-     *
-     * @param p1               From Person Id
-     * @param SpecificRelation Specific Relation between Persons
-     * @param p2               To Person Id
-     */
+
     public void connectPersons(Person p1, SpecificRelation SpecificRelation, Person p2, int relationLevel, boolean
             doValidate) {
+        this.p1 = p1;
+        specificRelation = SpecificRelation;
+        this.p2 = p2;
+        this.relationLevel = relationLevel;
+        this.doValidate = doValidate;
         this.connectPersons(p1, SpecificRelation.getGenericRelation(), p2, relationLevel, doValidate);
     }
 
     private void connectPersons(Person p1, Object genericRelation, Person p2, int relationLevel, boolean doValidate) {
 
+        this.p1 = p1;
+        this.genericRelation = genericRelation;
+        this.p2 = p2;
+        this.relationLevel = relationLevel;
+        this.doValidate = doValidate;
     }
 
-    /**
-     * Batch connects multiple pairs of persons
-     *
-     * @param connections List of connections to connect
-     */
+
     public void batchConnectPersons(Set<ConnectionEdge> connections) {
         connections.forEach(// No need of validation as the connections are already validated while initially connecting.
                 this::accept);
     }
 
-    /**
-     * Disconnects persons
-     *
-     * @param p1 From person
-     * @param p2 To Person
-     */
+
     public void removeDirectConnection(Person p1, Person p2) {
         if (!arePersonsDirectlyConnected(p1, p2)) {
             throw new IllegalArgumentException(p1 + " is NOT directly connected to " + p2);
         }
         for (Iterator<ConnectionEdge> iterator = getAllNeighbourConnections(p1).iterator(); iterator.hasNext(); ) {
             ConnectionEdge connection = iterator.next();
-            if (connection.to().equals(p2)) {
+            if (connection.to() == p2) {
                 iterator.remove();
                 return;
             }
         }
     }
 
-    /**
-     * Checks if two person are directly connected
-     *
-     * @param p1 Person 1
-     * @param p2 Person 2
-     * @return True if directly Connected
-     */
+
     public boolean arePersonsDirectlyConnected(Person p1, Person p2) {
         for (ConnectionEdge connection : getAllNeighbourConnections(p1)) {
             if (p2.equals(connection.to()))
@@ -170,12 +135,7 @@ public class FamilyGraph {
         return false;
     }
 
-    /**
-     * Returns Person with that Id.
-     *
-     * @param pId Id of person
-     * @return Person with Id
-     */
+
     public Person getPersonById(String pId) {
         Person person = mPersonIdMap.get(pId);
         if (person == null) {
@@ -184,36 +144,20 @@ public class FamilyGraph {
         return person;
     }
 
-    /**
-     * Returns all Persons in family
-     *
-     * @return Collection of all persons in family
-     */
+
     public Collection<Person> getAllPersonsInFamily() {
         return mPersonIdMap.values();
     }
 
-    /**
-     * Returns the direct/indirect connection between two persons
-     *
-     * @param p1             From Person
-     * @param p2             To Person
-     * @param doBatchConnect
-     * @return Connection
-     */
+
     public ConnectionEdge getConnection(Person p1, Person p2, boolean doBatchConnect) {
         ConnectionEdge connection = bfsTraverseFamilyGraph(p1, p2, null, doBatchConnect);
-        // If p2 is not reached, both are not connected
-        return (connection != null && connection.to().equals(p2)) ? connection : null;
+
+        assert connection.to() != null;
+        return connection.to().equals(p2) ? connection : null;
     }
 
-    /**
-     * Returns all connections the person have with all other persons in family
-     *
-     * @param person                              Person for whom the graph is queried
-     * @param makeNewConnectionsFoundDuringSearch Boolean to indicate if establish all new connections found during search
-     * @return List of all Connections the person have with all other persons in family
-     */
+
     public Collection<ConnectionEdge> getAllConnectionsInFamilyForPerson(Person person,
                                                                          boolean makeNewConnectionsFoundDuringSearch) {
         Set<ConnectionEdge> connectionsToPopulate = new HashSet<>();
@@ -221,16 +165,7 @@ public class FamilyGraph {
         return connectionsToPopulate;
     }
 
-    /**
-     * Traverse Family graph in Breadth-First way, to populate connectionsToPopulate and returns connection with aggregate
-     * relation. This is used by both getAllConnectionsInFamilyForPerson and getConnection
-     *
-     * @param p1                                  From Person
-     * @param p2                                  To Person
-     * @param connectionsToPopulate               Connections to be populated for family graph
-     * @param makeNewConnectionsFoundDuringSearch Boolean to indicate if establish all new connections found during search
-     * @return Connection with aggregate relation
-     */
+
     private ConnectionEdge bfsTraverseFamilyGraph(Person p1, Person p2, Set<ConnectionEdge> connectionsToPopulate,
                                                   boolean makeNewConnectionsFoundDuringSearch) {
         if (p1 == null || mPersonIdMap.get(p1.getId()) == null) {
@@ -284,19 +219,13 @@ public class FamilyGraph {
             }
         }
         if (makeNewConnectionsFoundDuringSearch) {
-            // Adding connection results as we find, to improve future searches
+
             batchConnectPersons(connectionsToPopulate);
         }
         return previousConnection;
     }
 
-    /**
-     * Returns map containing path from one Person to another
-     *
-     * @param p1 From Person
-     * @param p2 To Person
-     * @return Path map.
-     */
+
     private Map<Person, ConnectionEdge> getConnectionPath(Person p1, Person p2) {
         if (p1 == null || mPersonIdMap.get(p1.getId()) == null) {
             throw new IllegalArgumentException("Person " + p1 + " not found in family");
@@ -337,15 +266,7 @@ public class FamilyGraph {
         return getAggregateRelationWithRelationChain(p1, p2, getConnectionPath(p1, p2), null);
     }
 
-    /**
-     * Returns aggregate relation and also populates connections chain that led to that relation
-     *
-     * @param p1             From Person
-     * @param p2             To Person
-     * @param connectionPath Map having path from p1 to p2
-     * @param connections    List to be populated with connection chain
-     * @return Aggregate relation
-     */
+
     private ConnectionEdge getAggregateRelationWithRelationChain(Person p1,
                                                                  Person p2,
                                                                  Map<Person, ConnectionEdge> connectionPath,
@@ -366,7 +287,7 @@ public class FamilyGraph {
                 aggregateConnection = new ConnectionEdge(nextPerson,
                         aggregateRelation,
                         p2,
-                        nextRelation.getRelationLevel() + aggregateConnection.relationLevel());
+                        requireNonNull(nextRelation).getRelationLevel() + aggregateConnection.relationLevel());
             }
             if (connections != null) {
                 connections.add(nextEdge);
@@ -379,7 +300,6 @@ public class FamilyGraph {
     }
 
     public Collection<ConnectionEdge> getAllMembersFromGenerationLevel(Person person, int generationLevel) {
-        // Need to check relations in reverse, so taking inverse of generationLevel
         return filterConnectionsByGenerationLevel(person, -generationLevel, getAllConnectionsInFamilyForPerson(person,
                 false));
     }
@@ -402,9 +322,9 @@ public class FamilyGraph {
         return filterPersonsByGender(isMale, new ArrayList<>(mPersonIdMap.values()));
     }
 
-    private Collection<Person> filterPersonsByGender(Boolean isMale, ArrayList<Person> people){}
-
-
+    private Collection<Person> filterPersonsByGender(Boolean isMale, ArrayList<Person> people) {
+        return null;
+    }
 
 
     public Collection<Person> getAllPersonsByRelation(Person person, Relation relation, int relationLevel) {
@@ -419,14 +339,7 @@ public class FamilyGraph {
         return this.getAllPersonsByRelation(person, genericRelation, null, relationLevel);
     }
 
-    /**
-     * Returns all the Person who are related with that Specific relation
-     *
-     * @param person
-     * @param specificRelation
-     * @param relationLevel
-     * @return
-     */
+
     public Collection<Person> getAllPersonsByRelation(Person person, SpecificRelation specificRelation, int
             relationLevel) {
         return this.getAllPersonsByRelation(person, specificRelation.getGenericRelation(), specificRelation
@@ -436,15 +349,29 @@ public class FamilyGraph {
     private Collection<Person> getAllPersonsByRelation(Person person, GenericRelation genericRelation,
                                                        Boolean isRelationMale, int relationLevel) {
         GenericRelation reverseRelation = genericRelation.getReverseRelation();
-        return filterConnectionsBySpecificRelation(reverseRelation, isRelationMale, -relationLevel,
-                getAllConnectionsInFamilyForPerson(person, false))
-                .stream()
-                .map(ConnectionEdge::to)
-                .collect(Collectors.toList());
+        Collection<Person> list = new ArrayList<>();
+        for (ConnectionEdge connectionEdge : getAllConnectionsInFamilyForPerson(person, false)) {
+            Person to = connectionEdge.to();
+            boolean add = list.add(to);
+
+        }
+        return list;
     }
 
-    private Arrays filterConnectionsBySpecificRelation(GenericRelation reverseRelation, Boolean isRelationMale, int i, Collection<ConnectionEdge> allConnectionsInFamilyForPerson) {
+    /**
+     * @param reverseRelation
+     * @param isRelationMale
+     * @param i
+     * @param allConnectionsInFamilyForPerson
+     */
+    @org.jetbrains.annotations.Contract(pure = true)
+    private void filterConnectionsBySpecificRelation(GenericRelation reverseRelation, Boolean isRelationMale, int i, Collection<ConnectionEdge> allConnectionsInFamilyForPerson) {
 
+
+        this.reverseRelation = reverseRelation;
+        this.isRelationMale = isRelationMale;
+        this.i = i;
+        this.allConnectionsInFamilyForPerson = allConnectionsInFamilyForPerson;
     }
 
 
@@ -463,7 +390,8 @@ public class FamilyGraph {
                 specificRelation.isRelationMale(), relationLevel, getAllConnectionsInFamilyForPerson(person, false));
     }
 
-    public boolean isPersonRelatedWithRelation(Person person, var genericRelation, int relationLevel) {
+    public boolean isPersonRelatedWithRelation(Person person,
+                                               int relationLevel) {
         return this.isPersonRelatedWithRelation(person, (GenericRelation) genericRelation, null, relationLevel,
                 getAllNeighbourConnections(person))
                 || this.isPersonRelatedWithRelation(person, (GenericRelation) genericRelation, null, relationLevel,
@@ -476,9 +404,11 @@ public class FamilyGraph {
             return false;
         }
         for (ConnectionEdge connection : allConnections) {
-            if (connection.relationLevel() == relationLevel && connection.relation().equals(genericRelation)) {
-                return true;
-            }
+            assert connection.relation() != null;
+            if (connection.relation().equals(genericRelation))
+                if (connection.relationLevel() == relationLevel) {
+                    return true;
+                }
         }
         return false;
     }
@@ -487,9 +417,92 @@ public class FamilyGraph {
         Person from = connection.from();
         Person to = connection.to();
         if (!arePersonsDirectlyConnected(from, to)) {
-            // No need of validation as the connections are already validated while initially connecting.
             connectPersons(from, connection.relation(), to, connection.relationLevel(), false);
         }
+    }
+
+    private void connectPersons(Person from, GenericRelation relation, Person to, Object relationLevel, boolean b) {
+
+    }
+
+    public Collection<ConnectionEdge> getAllConnectionsInFamilyForPerson() {
+        return allConnectionsInFamilyForPerson;
+    }
+
+    public void setAllConnectionsInFamilyForPerson(Collection<ConnectionEdge> allConnectionsInFamilyForPerson) {
+        this.allConnectionsInFamilyForPerson = allConnectionsInFamilyForPerson;
+    }
+
+    public SpecificRelation getSpecificRelation() {
+        return specificRelation;
+    }
+
+    public void setSpecificRelation(SpecificRelation specificRelation) {
+        this.specificRelation = specificRelation;
+    }
+
+    public Object getGenericRelation() {
+        return genericRelation;
+    }
+
+    public void setGenericRelation(Object genericRelation) {
+        this.genericRelation = genericRelation;
+    }
+
+    public int getI() {
+        return i;
+    }
+
+    public void setI(int i) {
+        this.i = i;
+    }
+
+    public Boolean getRelationMale() {
+        return isRelationMale;
+    }
+
+    public void setRelationMale(Boolean relationMale) {
+        isRelationMale = relationMale;
+    }
+
+    public GenericRelation getReverseRelation() {
+        return reverseRelation;
+    }
+
+    public void setReverseRelation(GenericRelation reverseRelation) {
+        this.reverseRelation = reverseRelation;
+    }
+
+    public Person getP1() {
+        return p1;
+    }
+
+    public void setP1(Person p1) {
+        this.p1 = p1;
+    }
+
+    public Person getP2() {
+        return p2;
+    }
+
+    public void setP2(Person p2) {
+        this.p2 = p2;
+    }
+
+    public int getRelationLevel() {
+        return relationLevel;
+    }
+
+    public void setRelationLevel(int relationLevel) {
+        this.relationLevel = relationLevel;
+    }
+
+    public boolean isDoValidate() {
+        return doValidate;
+    }
+
+    public void setDoValidate(boolean doValidate) {
+        this.doValidate = doValidate;
     }
 }
 

@@ -68,4 +68,8 @@ public enum SpecificRelation implements Relation {
     public void setRelationMale(boolean relationMale) {
         this.relationMale = relationMale;
     }
+
+    public Boolean getRelationMale() {
+        return isRelationMale;
+    }
 }

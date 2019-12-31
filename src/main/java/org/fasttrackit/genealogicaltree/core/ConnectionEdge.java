@@ -4,7 +4,6 @@ package org.fasttrackit.genealogicaltree.core;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.Value;
-import lombok.var;
 import org.fasttrackit.genealogicaltree.relationship.GenericRelation;
 import org.fasttrackit.genealogicaltree.relationship.SpecificRelation;
 
@@ -18,6 +17,39 @@ public final class ConnectionEdge {
     private Person from;
     @NonNull
     private GenericRelation relation;
+
+    public Person getFrom() {
+        return from;
+    }
+
+    public void setFrom(Person from) {
+        this.from = from;
+    }
+
+    public GenericRelation getRelation() {
+        return relation;
+    }
+
+    public void setRelation(GenericRelation relation) {
+        this.relation = relation;
+    }
+
+    public Person getTo() {
+        return to;
+    }
+
+    public void setTo(Person to) {
+        this.to = to;
+    }
+
+    public int getRelationLevel() {
+        return relationLevel;
+    }
+
+    public void setRelationLevel(int relationLevel) {
+        this.relationLevel = relationLevel;
+    }
+
     @NonNull
     private Person to;
     private int relationLevel;
@@ -30,15 +62,7 @@ public final class ConnectionEdge {
         this(from, relation, to, relation.getRelationLevel());
     }
 
-    /**
-     * This Constructor mainly defined to ease Unit testing
-     *
-     * @param fromPid
-     * @param relation
-     * @param toPid
-     * @param relationLevel
-     * @param family
-     */
+
     public ConnectionEdge(String fromPid, String relation, String toPid, int relationLevel, FamilyGraph family) {
         this(family.getPersonById(fromPid), parseToGenericRelation(relation), family.getPersonById(toPid),
                 relationLevel);
@@ -62,8 +86,8 @@ public final class ConnectionEdge {
     }
 
     private StringBuilder generateGrandRelationPrefix(int relationLevel) {
-        StringBuilder grandPrefix;
-        grandPrefix = new grandPrefix();
+        StringBuilder grandPrefix = new StringBuilder();
+
         while (relationLevel-- > 2) {
             grandPrefix.append("GREAT ");
         }
@@ -71,11 +95,11 @@ public final class ConnectionEdge {
     }
 
 
-    public Person from() {
+    public Person to() {
         return null;
     }
 
-    public Person to() {
+    public Person from() {
         return null;
     }
 
@@ -83,7 +107,8 @@ public final class ConnectionEdge {
         return null;
     }
 
-    public byte relationLevel() {
+
+    public int relationLevel() {
         return 0;
     }
 }
